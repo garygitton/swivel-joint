@@ -1,8 +1,1013 @@
-<!DOCTYPE html><html><head><title>Swivel Joint</title></head><body></body></html>
-<!-- Canvas and UI controls added -->
-<script>const canvas = document.querySelector('canvas');</script>
-<script>function draw2DSchematic() {}</script>
-<script>function createParticles() {}</script>
-<script>function draw3DAssembly() {}</script>
-<script>function get3DSceneFaces() {}</script>
-<!-- SVG Export -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>US7032353 - Swivel Joint Apparatus | Interactive Study</title>
+    <meta name="description" content="GPU-independent interactive technical drawing and 3D solid assembly study of the rotating building utility swivel joint.">
+    <link rel="icon" href="data:,">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <!-- HEADER -->
+        <header class="main-header">
+            <div class="logo-area">
+                <span class="patent-no">US7032353B2</span>
+                <h1>Utility Swivel Joint</h1>
+            </div>
+            
+            <!-- View Tabs (2D Schematic vs 3D Assembly) -->
+            <div class="view-tabs">
+                <button class="tab-btn active" id="tab-2d">2D Cross-Section</button>
+                <button class="tab-btn" id="tab-3d">3D Assembly</button>
+            </div>
+            
+            <div class="engine-indicator">
+                <span id="engine-badge" class="badge">CPU Solid Engine</span>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT -->
+        <main class="main-content">
+            
+            <!-- LEFT PANEL: Educational & Controls -->
+            <section class="side-panel">
+                <div class="card educational-card">
+                    <h2>Operation Guide</h2>
+                    <p class="intro-text">
+                        A utility swivel joint facilitates the connection of water, gas, electricity, and sewer lines from a stationary base to a continuously rotating building structure.
+                    </p>
+                    
+                    <!-- System interactive toggles -->
+                    <div class="system-menu">
+                        <button class="sys-btn active" data-sys="all">
+                            <span class="indicator-dot dot-all"></span>
+                            <span>Complete Assembly</span>
+                        </button>
+                        <button class="sys-btn" data-sys="0">
+                            <span class="indicator-dot dot-water"></span>
+                            <span>Water Conduit</span>
+                        </button>
+                        <button class="sys-btn" data-sys="1">
+                            <span class="indicator-dot dot-gas"></span>
+                            <span>Gas Conduit</span>
+                        </button>
+                        <button class="sys-btn" data-sys="2">
+                            <span class="indicator-dot dot-waste"></span>
+                            <span>Wastewater Conduit</span>
+                        </button>
+                        <button class="sys-btn" data-sys="3">
+                            <span class="indicator-dot dot-electric"></span>
+                            <span>Electrical Conduit</span>
+                        </button>
+                    </div>
+
+                    <!-- Dynamic Description Text -->
+                    <div id="system-description" class="sys-desc-box">
+                        Select a utility channel above to trace its flow path and see how the fluids travel through the rotating mechanism.
+                    </div>
+                </div>
+
+                <!-- CONTROLS CARD -->
+                <div class="card controls-card">
+                    <h3>Visualization Controls</h3>
+                    
+                    <div class="control-row" id="row-cutaway">
+                        <label for="toggle-cutaway">Cutaway Section (90°)</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-cutaway" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-row">
+                        <label for="toggle-explode">Exploded View</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-explode">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-row" id="row-opacity">
+                        <label for="slider-opacity">Casing Transparency</label>
+                        <input type="range" id="slider-opacity" min="0" max="100" value="80" class="range-slider">
+                    </div>
+
+                    <div class="control-row">
+                        <label for="toggle-flow">Animate Fluid Flow</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-flow" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="control-row" id="row-rotate">
+                        <label for="toggle-rotate">Auto-Rotation</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-rotate" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <button id="btn-reset" class="btn-secondary" style="margin-bottom: 10px;">Reset Viewport</button>
+                    <button id="btn-export" class="btn-secondary">Export Blueprint (SVG)</button>
+                </div>
+            </section>
+
+            <!-- RIGHT PANEL: Viewport -->
+            <section class="viewport-card">
+                <div id="canvas-container">
+                    <canvas id="vector-canvas"></canvas>
+                </div>
+                
+                <!-- Viewport legend overlays -->
+                <div class="viewport-overlay top-left">
+                    <div class="overlay-item" id="overlay-angle">
+                        <span class="lbl">Angle Y:</span>
+                        <span id="lbl-rot" class="val">0.0°</span>
+                    </div>
+                </div>
+                
+                <div class="viewport-overlay bottom-left">
+                    <div class="scale-ruler">
+                        <div class="ruler-line"></div>
+                        <span class="ruler-txt">100mm Scale</span>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Self-contained GPU-free Solid & Schematic Vector Engine -->
+    <script>
+        // Config & State
+        let renderMode = '2D'; // '2D' (Schematic) or '3D' (Solid Assembly)
+        let activeSystem = 'all';
+        let isExploded = false;
+        let isCutaway = true;
+        let casingOpacity = 0.8;
+        let showFlow = true;
+        let isAutoRotate = true;
+
+        let currentExplosion = 0.0;
+        const explodeSpeed = 0.06;
+
+        // 3D Rotation, Pan & Zoom
+        let angleY = 0;
+        let angleX = 0.3;
+        let panX = 0;
+        let panY = 0;
+        let zoom = 1.0;
+        let isDragging = false;
+        let dragMode = 'rotate'; // 'rotate' or 'pan'
+        let lastMouseX = 0, lastMouseY = 0;
+        let initialTouchDist = 0;
+
+        // Particle system for fluid flow
+        let particles = [];
+        
+        // UI Bindings
+        const tab2d = document.getElementById('tab-2d');
+        const tab3d = document.getElementById('tab-3d');
+        const toggleExplode = document.getElementById('toggle-explode');
+        const toggleCutaway = document.getElementById('toggle-cutaway');
+        const sliderOpacity = document.getElementById('slider-opacity');
+        const toggleFlow = document.getElementById('toggle-flow');
+        const toggleRotate = document.getElementById('toggle-rotate');
+        const btnReset = document.getElementById('btn-reset');
+        const btnExport = document.getElementById('btn-export');
+        
+        const lblRot = document.getElementById('lbl-rot');
+        const overlayAngle = document.getElementById('overlay-angle');
+        const systemDescription = document.getElementById('system-description');
+        
+        const rowCutaway = document.getElementById('row-cutaway');
+        const rowOpacity = document.getElementById('row-opacity');
+        const rowRotate = document.getElementById('row-rotate');
+
+        const canvas = document.getElementById('vector-canvas');
+        const canvasCtx = canvas.getContext('2d');
+        let width, height;
+
+        const SYSTEM_INFO = {
+            all: "Select a utility channel above to trace its flow path and see how the fluids travel through the rotating mechanism.",
+            0: "<strong>Water System:</strong> Water enters from the stationary base via a vertical pipe at the bottom left of the spindle core, exits radially into the bottom chamber, and flows into the rotating building's lower conduit.",
+            1: "<strong>Gas System:</strong> Gas travels up the second vertical channel to the second chamber. Elastomeric O-rings prevent it from mixing with the neighboring water and wastewater lines.",
+            2: "<strong>Wastewater System:</strong> Waste drains down to the third chamber, utilizing a wider conduit diameter to ensure gravity-fed drainage exits cleanly without leakage.",
+            3: "<strong>Electrical System:</strong> Power lines run up a central dry shaft to electric slip rings at the top cap, supplying continuous electrical connections during rotation."
+        };
+
+        const conduitColors = ['#0ea5e9', '#f97316', '#a855f7', '#eab308'];
+
+        // Fake SVG drawing context to record SVG drawing commands
+        class SVGContext {
+            constructor(w, h) {
+                this.width = w;
+                this.height = h;
+                this.paths = [];
+                this.currentPath = [];
+                this.fillStyle = '#ffffff';
+                this.strokeStyle = '#000000';
+                this.lineWidth = 1;
+                this.font = '10px sans-serif';
+            }
+            beginPath() { this.currentPath = []; }
+            moveTo(x, y) { this.currentPath.push(`M ${x.toFixed(1)} ${y.toFixed(1)}`); }
+            lineTo(x, y) { this.currentPath.push(`L ${x.toFixed(1)} ${y.toFixed(1)}`); }
+            arc(cx, cy, r, startAngle, endAngle) {
+                // Approximate circular arc for SVG path
+                this.currentPath.push(`M ${cx-r} ${cy} A ${r} ${r} 0 1 0 ${cx+r} ${cy} A ${r} ${r} 0 1 0 ${cx-r} ${cy}`);
+            }
+            closePath() { this.currentPath.push('Z'); }
+            fillRect(x, y, w, h) {
+                this.paths.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${this.fillStyle}" stroke="none" />`);
+            }
+            strokeRect(x, y, w, h) {
+                this.paths.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="none" stroke="${this.strokeStyle}" stroke-width="${this.lineWidth}" />`);
+            }
+            fill() {
+                const d = this.currentPath.join(' ');
+                if (d.trim()) {
+                    this.paths.push(`<path d="${d}" fill="${this.fillStyle}" stroke="none" />`);
+                }
+            }
+            stroke() {
+                const d = this.currentPath.join(' ');
+                if (d.trim()) {
+                    this.paths.push(`<path d="${d}" fill="none" stroke="${this.strokeStyle}" stroke-width="${this.lineWidth}" stroke-linecap="round" stroke-linejoin="round" />`);
+                }
+            }
+            fillText(text, x, y) {
+                this.paths.push(`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fill="${this.strokeStyle}" font-family="JetBrains Mono, monospace" font-size="10px" text-anchor="middle">${text}</text>`);
+            }
+            clearRect() {} // No-op in SVG
+            getXML() {
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${this.width} ${this.height}" width="${this.width}" height="${this.height}">
+                    <rect width="100%" height="100%" fill="#f8fafc" />
+                    <g style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                        ${this.paths.join('\n')}
+                    </g>
+                </svg>`;
+            }
+        }
+
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // Drag behavior for 3D View
+            canvas.addEventListener('mousedown', (e) => {
+                if (renderMode !== '3D') return;
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                isAutoRotate = false;
+                toggleRotate.checked = false;
+                
+                // Right click, middle click, or Left click + Shift = PAN
+                if (e.button === 2 || e.button === 1 || e.shiftKey) {
+                    dragMode = 'pan';
+                } else {
+                    dragMode = 'rotate';
+                }
+            });
+
+            // Prevent context menu on right click drag
+            canvas.addEventListener('contextmenu', (e) => {
+                if (renderMode === '3D') e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - lastMouseX;
+                const dy = e.clientY - lastMouseY;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+
+                if (dragMode === 'pan') {
+                    panX += dx;
+                    panY += dy;
+                } else {
+                    angleY += dx * 0.007;
+                    angleX += dy * 0.007;
+                    angleX = Math.max(-Math.PI/4, Math.min(Math.PI/4, angleX));
+                }
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            // Wheel zoom
+            canvas.addEventListener('wheel', (e) => {
+                if (renderMode !== '3D') return;
+                e.preventDefault();
+                zoom += e.deltaY * -0.001;
+                zoom = Math.max(0.2, Math.min(5.0, zoom));
+            }, { passive: false });
+
+            // Touch support for mobile/trackpad
+            canvas.addEventListener('touchstart', (e) => {
+                if (renderMode !== '3D') return;
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    dragMode = 'rotate';
+                    lastMouseX = e.touches[0].clientX;
+                    lastMouseY = e.touches[0].clientY;
+                    isAutoRotate = false;
+                    toggleRotate.checked = false;
+                } else if (e.touches.length === 2) {
+                    isDragging = true;
+                    dragMode = 'zoom-pan';
+                    lastMouseX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    lastMouseY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    initialTouchDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                }
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                if (e.touches.length === 1 && dragMode === 'rotate') {
+                    const dx = e.touches[0].clientX - lastMouseX;
+                    const dy = e.touches[0].clientY - lastMouseY;
+                    lastMouseX = e.touches[0].clientX;
+                    lastMouseY = e.touches[0].clientY;
+
+                    angleY += dx * 0.007;
+                    angleX += dy * 0.007;
+                    angleX = Math.max(-Math.PI/4, Math.min(Math.PI/4, angleX));
+                } else if (e.touches.length === 2 && dragMode === 'zoom-pan') {
+                    const currentX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    const dx = currentX - lastMouseX;
+                    const dy = currentY - lastMouseY;
+                    
+                    lastMouseX = currentX;
+                    lastMouseY = currentY;
+                    
+                    panX += dx;
+                    panY += dy;
+                    
+                    const dist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const deltaDist = dist - initialTouchDist;
+                    initialTouchDist = dist;
+                    
+                    zoom += deltaDist * 0.005;
+                    zoom = Math.max(0.2, Math.min(5.0, zoom));
+                }
+            });
+
+            canvas.addEventListener('touchend', () => { isDragging = false; });
+
+            setupUI();
+            createParticles();
+            
+            // Start main animation loop
+            tick();
+        }
+
+        function resizeCanvas() {
+            width = canvas.clientWidth;
+            height = canvas.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        function setupUI() {
+            // Tab switching
+            tab2d.addEventListener('click', () => {
+                tab2d.classList.add('active');
+                tab3d.classList.remove('active');
+                renderMode = '2D';
+                
+                // Hide 3D options
+                rowCutaway.style.display = 'none';
+                rowOpacity.style.display = 'none';
+                rowRotate.style.display = 'none';
+                overlayAngle.style.display = 'none';
+            });
+
+            tab3d.addEventListener('click', () => {
+                tab3d.classList.add('active');
+                tab2d.classList.remove('active');
+                renderMode = '3D';
+                
+                // Show 3D options
+                rowCutaway.style.display = 'flex';
+                rowOpacity.style.display = 'flex';
+                rowRotate.style.display = 'flex';
+                overlayAngle.style.display = 'block';
+            });
+
+            // Trigger default view visibility
+            tab2d.click();
+
+            toggleExplode.addEventListener('change', (e) => { isExploded = e.target.checked; });
+            toggleCutaway.addEventListener('change', (e) => { isCutaway = e.target.checked; });
+            sliderOpacity.addEventListener('input', (e) => { casingOpacity = parseFloat(e.target.value) / 100; });
+            toggleFlow.addEventListener('change', (e) => { showFlow = e.target.checked; });
+            toggleRotate.addEventListener('change', (e) => { isAutoRotate = e.target.checked; });
+
+            btnReset.addEventListener('click', () => {
+                angleY = 0;
+                angleX = 0.3;
+                panX = 0;
+                panY = 0;
+                zoom = 1.0;
+                isAutoRotate = true;
+                toggleRotate.checked = true;
+                isExploded = false;
+                toggleExplode.checked = false;
+            });
+
+            // Handle blueprint vector download
+            btnExport.addEventListener('click', () => {
+                const svgCtx = new SVGContext(width, height);
+                
+                if (renderMode === '2D') {
+                    draw2DSchematic(svgCtx);
+                } else {
+                    draw3DAssembly(svgCtx);
+                }
+
+                // Download file
+                const blob = new Blob([svgCtx.getXML()], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `swivel_joint_${renderMode.toLowerCase()}_blueprint.svg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // Utility buttons
+            const buttons = document.querySelectorAll('.sys-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    buttons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    activeSystem = btn.getAttribute('data-sys');
+                    systemDescription.innerHTML = SYSTEM_INFO[activeSystem];
+                });
+            });
+        }
+
+        // Particle system for flow tracing
+        function createParticles() {
+            particles = [];
+            // Create flow particles along the channels
+            for (let i = 0; i < 4; i++) {
+                for (let p = 0; p < 15; p++) {
+                    particles.push({
+                        system: i,
+                        t: p / 15, // parameter from 0 (entry) to 1 (exit)
+                        speed: 0.005 + Math.random() * 0.003
+                    });
+                }
+            }
+        }
+
+        // 3D Perspective Projection Math (uses global zoom/pan)
+        function project3D(x, y, z) {
+            const cosY = Math.cos(angleY);
+            const sinY = Math.sin(angleY);
+            let x1 = x * cosY - z * sinY;
+            let z1 = x * sinY + z * cosY;
+            
+            const cosX = Math.cos(angleX);
+            const sinX = Math.sin(angleX);
+            let y2 = y * cosX - z1 * sinX;
+            let z2 = y * sinX + z1 * cosX;
+            
+            const depth = z2 + 35;
+            const factor = 460 * zoom;
+            const px = (x1 * factor) / depth + width / 2 + panX;
+            const py = (-y2 * factor) / depth + height / 2 + panY;
+            
+            return { x: px, y: py };
+        }
+
+        // Render Tick
+        function tick() {
+            requestAnimationFrame(tick);
+            canvasCtx.clearRect(0, 0, width, height);
+
+            const targetExplosion = isExploded ? 1.0 : 0.0;
+            currentExplosion += (targetExplosion - currentExplosion) * explodeSpeed;
+
+            // Update particle flow
+            if (showFlow) {
+                particles.forEach(p => {
+                    p.t += p.speed;
+                    if (p.t > 1) p.t = 0;
+                });
+            }
+
+            if (renderMode === '2D') {
+                draw2DSchematic(canvasCtx);
+            } else {
+                draw3DAssembly(canvasCtx);
+            }
+        }
+
+        // ─── 2D SCHEMATIC RENDERER (Detailed Cross-Section) ──
+        function draw2DSchematic(drawCtx) {
+            const cx = width / 2;
+            const cy = height / 2 - 10;
+            
+            // Parts parameters
+            const spindleW = 60;
+            const flangeW = 110;
+            const flangeH = 14;
+            const casingW = 120;
+            const casingOuterW = 140;
+
+            const flangeYPositions = [-100, -40, 20, 80, 140];
+            const chamberOffsets = [-70, -10, 50, 110];
+            const chamberHeights = [30, 30, 30, 30];
+
+            // 1. Draw central spindle hatching & base
+            drawCtx.fillStyle = '#f8fafc';
+            drawCtx.fillRect(cx - spindleW/2, cy - 140, spindleW, 280);
+
+            // Spindle core outline
+            drawCtx.strokeStyle = '#64748b';
+            drawCtx.lineWidth = 2;
+            drawCtx.strokeRect(cx - spindleW/2, cy - 140, spindleW, 280);
+
+            // Hatching lines in spindle (technical draft look)
+            drawCtx.strokeStyle = '#e2e8f0';
+            drawCtx.lineWidth = 1;
+            for (let y = cy - 130; y < cy + 140; y += 12) {
+                drawCtx.beginPath();
+                drawCtx.moveTo(cx - spindleW/2, y);
+                drawCtx.lineTo(cx + spindleW/2, y - 10);
+                drawCtx.stroke();
+            }
+
+            // Draw flanges
+            drawCtx.fillStyle = '#cbd5e1';
+            drawCtx.strokeStyle = '#64748b';
+            drawCtx.lineWidth = 1.5;
+            flangeYPositions.forEach(yOffset => {
+                drawCtx.fillRect(cx - flangeW/2, cy + yOffset - flangeH/2, flangeW, flangeH);
+                drawCtx.strokeRect(cx - flangeW/2, cy + yOffset - flangeH/2, flangeW, flangeH);
+            });
+
+            // 2. Draw O-Ring Gaskets (Seals)
+            drawCtx.fillStyle = '#1e293b';
+            flangeYPositions.forEach(yOffset => {
+                drawCtx.beginPath();
+                drawCtx.arc(cx - flangeW/2 + 6, cy + yOffset, 4, 0, Math.PI * 2);
+                drawCtx.fill();
+                
+                drawCtx.beginPath();
+                drawCtx.arc(cx + flangeW/2 - 6, cy + yOffset, 4, 0, Math.PI * 2);
+                drawCtx.fill();
+            });
+
+            // 3. Draw internal conduits inside spindle
+            const condX = [-20, -8, 8, 20];
+            const condExitX = [flangeW/2, flangeW/2, -flangeW/2, -flangeW/2];
+
+            for (let i = 0; i < 4; i++) {
+                const isActive = activeSystem === 'all' || activeSystem === String(i);
+                drawCtx.strokeStyle = isActive ? conduitColors[i] : '#e2e8f0';
+                drawCtx.lineWidth = 5;
+                drawCtx.lineCap = 'round';
+                drawCtx.lineJoin = 'round';
+
+                drawCtx.beginPath();
+                drawCtx.moveTo(cx + condX[i], cy + 160);
+                drawCtx.lineTo(cx + condX[i], cy + chamberOffsets[i]);
+                drawCtx.lineTo(cx + condExitX[i], cy + chamberOffsets[i]);
+                drawCtx.stroke();
+            }
+
+            // 4. Draw outer casing sleeves
+            const casingOffsets = isExploded ? [-40, -15, 15, 40] : [0, 0, 0, 0];
+            
+            for (let i = 0; i < 4; i++) {
+                const isActive = activeSystem === 'all' || activeSystem === String(i);
+                const cyChamber = cy + chamberOffsets[i] + casingOffsets[i] * currentExplosion;
+                const hChamber = chamberHeights[i];
+                
+                drawCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                drawCtx.strokeStyle = isActive ? '#475569' : '#cbd5e1';
+                drawCtx.lineWidth = 1.5;
+
+                // Left casing segment
+                drawCtx.fillRect(cx - casingOuterW/2, cyChamber - hChamber/2, (casingOuterW - flangeW)/2, hChamber);
+                drawCtx.strokeRect(cx - casingOuterW/2, cyChamber - hChamber/2, (casingOuterW - flangeW)/2, hChamber);
+
+                // Right casing segment
+                drawCtx.fillRect(cx + flangeW/2, cyChamber - hChamber/2, (casingOuterW - flangeW)/2, hChamber);
+                drawCtx.strokeRect(cx + flangeW/2, cyChamber - hChamber/2, (casingOuterW - flangeW)/2, hChamber);
+
+                // Draw horizontal exit ports
+                drawCtx.strokeStyle = isActive ? '#475569' : '#cbd5e1';
+                drawCtx.fillStyle = '#cbd5e1';
+                drawCtx.lineWidth = 1.5;
+                
+                if (i === 0 || i === 1) { // Right pointing ports
+                    drawCtx.fillRect(cx + casingOuterW/2, cyChamber - 8, 30, 16);
+                    drawCtx.strokeRect(cx + casingOuterW/2, cyChamber - 8, 30, 16);
+                    drawCtx.fillRect(cx + casingOuterW/2 + 25, cyChamber - 12, 5, 24);
+                    drawCtx.strokeRect(cx + casingOuterW/2 + 25, cyChamber - 12, 5, 24);
+                } else { // Left pointing ports
+                    drawCtx.fillRect(cx - casingOuterW/2 - 30, cyChamber - 8, 30, 16);
+                    drawCtx.strokeRect(cx - casingOuterW/2 - 30, cyChamber - 8, 30, 16);
+                    drawCtx.fillRect(cx - casingOuterW/2 - 30, cyChamber - 12, 5, 24);
+                    drawCtx.strokeRect(cx - casingOuterW/2 - 30, cyChamber - 12, 5, 24);
+                }
+            }
+
+            // 5. Draw animated flowing particles
+            if (showFlow && drawCtx === canvasCtx) { // Draw animated particles only on the active screen canvas
+                particles.forEach(p => {
+                    if (activeSystem !== 'all' && activeSystem !== String(p.system)) return;
+                    
+                    const i = p.system;
+                    const casingOffset = casingOffsets[i] * currentExplosion;
+                    const endX = condExitX[i];
+                    
+                    let px = 0, py = 0;
+                    
+                    if (p.t < 0.7) {
+                        const tNorm = p.t / 0.7;
+                        px = cx + condX[i];
+                        py = cy + 160 + tNorm * (chamberOffsets[i] - 160);
+                    } else {
+                        const tNorm = (p.t - 0.7) / 0.3;
+                        px = cx + condX[i] + tNorm * (endX - condX[i]);
+                        py = cy + chamberOffsets[i];
+                    }
+
+                    if (p.t > 0.7) {
+                        py += casingOffset;
+                        if (p.t > 0.9) {
+                            const extNorm = (p.t - 0.9) / 0.1;
+                            const portDir = endX > 0 ? 1 : -1;
+                            px += portDir * extNorm * 30;
+                        }
+                    }
+
+                    drawCtx.fillStyle = conduitColors[i];
+                    drawCtx.beginPath();
+                    drawCtx.arc(px, py, 4, 0, Math.PI * 2);
+                    drawCtx.fill();
+                });
+            }
+
+            // Labels & Technical Annotations
+            drawCtx.fillStyle = '#64748b';
+            drawCtx.font = '10px "JetBrains Mono"';
+            drawCtx.fillText("FLANGES (x5)", cx + flangeW/2 + 40, cy + 143);
+            drawCtx.fillText("O-RING GROOVES", cx + flangeW/2 + 40, cy + 83);
+            drawCtx.fillText("ANNULAR CHAMBERS (x4)", cx - flangeW/2 - 170, cy - 10);
+            drawCtx.fillText("STATIONARY SPINDLE CORE", cx - 70, cy - 155);
+        }
+
+        // Helper functions to generate 3D faces list
+        function addCylinderFaces(faces, cx, cy, cz, r, h, color, strokeColor, angleLimit = Math.PI*2, rotOffset = 0) {
+            const steps = 16;
+            const topY = cy + h/2;
+            const botY = cy - h/2;
+            
+            const topVerts = [];
+            const botVerts = [];
+            
+            for (let i = 0; i <= steps; i++) {
+                const theta = (i / steps) * angleLimit - (angleLimit/2) + rotOffset + Math.PI/2;
+                const cos = Math.cos(theta);
+                const sin = Math.sin(theta);
+                
+                topVerts.push([cx + r * cos, topY, cz + r * sin]);
+                botVerts.push([cx + r * cos, botY, cz + r * sin]);
+            }
+            
+            // Side faces
+            for (let i = 0; i < steps; i++) {
+                faces.push({
+                    vertices: [botVerts[i], botVerts[i+1], topVerts[i+1], topVerts[i]],
+                    color: color,
+                    strokeColor: strokeColor,
+                    lineWidth: 0.8
+                });
+            }
+            
+            // Top/Bottom caps
+            if (angleLimit === Math.PI * 2) {
+                faces.push({
+                    vertices: topVerts.slice(),
+                    color: color,
+                    strokeColor: strokeColor,
+                    lineWidth: 0.8
+                });
+                faces.push({
+                    vertices: botVerts.slice().reverse(),
+                    color: color,
+                    strokeColor: strokeColor,
+                    lineWidth: 0.8
+                });
+            } else {
+                // Cut segment caps
+                faces.push({
+                    vertices: [topVerts[0], botVerts[0], [cx, botY, cz], [cx, topY, cz]],
+                    color: color,
+                    strokeColor: strokeColor,
+                    lineWidth: 0.8
+                });
+                faces.push({
+                    vertices: [topVerts[steps], botVerts[steps], [cx, botY, cz], [cx, topY, cz]].reverse(),
+                    color: color,
+                    strokeColor: strokeColor,
+                    lineWidth: 0.8
+                });
+                // Partial circular caps
+                faces.push({
+                    vertices: [[cx, topY, cz], ...topVerts],
+                    color: color,
+                    strokeColor: strokeColor,
+                    lineWidth: 0.8
+                });
+                faces.push({
+                    vertices: [[cx, botY, cz], ...botVerts].reverse(),
+                    color: color,
+                    strokeColor: strokeColor,
+                    lineWidth: 0.8
+                });
+            }
+        }
+
+        function addHorizontalCylinderFaces(faces, cx, cy, cz, r, len, angle, color, strokeColor) {
+            const steps = 12;
+            const halfL = len / 2;
+            const topVerts = [];
+            const botVerts = [];
+            
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+            
+            for (let i = 0; i <= steps; i++) {
+                const theta = (i / steps) * Math.PI * 2;
+                const cosT = Math.cos(theta);
+                const sinT = Math.sin(theta);
+                
+                const ux = -sinA * r * cosT;
+                const uy = r * sinT;
+                const uz = cosA * r * cosT;
+                
+                topVerts.push([cx + cosA*halfL + ux, cy + uy, cz + sinA*halfL + uz]);
+                botVerts.push([cx - cosA*halfL + ux, cy + uy, cz - sinA*halfL + uz]);
+            }
+            
+            for (let i = 0; i < steps; i++) {
+                faces.push({
+                    vertices: [botVerts[i], botVerts[i+1], topVerts[i+1], topVerts[i]],
+                    color: color,
+                    strokeColor: strokeColor,
+                    lineWidth: 0.8
+                });
+            }
+            
+            faces.push({
+                vertices: topVerts,
+                color: color,
+                strokeColor: strokeColor,
+                lineWidth: 0.8
+            });
+            faces.push({
+                vertices: botVerts.slice().reverse(),
+                color: color,
+                strokeColor: strokeColor,
+                lineWidth: 0.8
+            });
+        }
+
+        function get3DSceneFaces() {
+            const faces = [];
+            const baseExplode = -6.5 * currentExplosion;
+            const capExplode = 8.5 * currentExplosion;
+            const offsets = [-4.5, -1.5, 2.5, 6.5];
+            const chamberOffsets = [-4.2, -0.6, 3.4, 7.2];
+            const chamberRadii = [2.9, 2.9, 3.4, 2.6];
+            const chamberHeights = [2.4, 2.4, 2.8, 2.0];
+            
+            // 1. Spindle core (semi-transparent steel)
+            const spindleAngle = isCutaway ? Math.PI : Math.PI * 2;
+            addCylinderFaces(faces, 0, 0, 0, 1.4, 21, 'rgba(203, 213, 225, 0.4)', '#475569', spindleAngle, 0);
+            
+            // Spindle bearings
+            addCylinderFaces(faces, 0, 9.2, 0, 1.8, 0.6, '#d97706', '#92400e');
+            addCylinderFaces(faces, 0, -8.2, 0, 1.8, 0.6, '#d97706', '#92400e');
+            
+            // 2. Base assembly
+            addCylinderFaces(faces, 0, -9.5 + baseExplode, 0, 4.2, 1.2, '#475569', '#1e293b');
+            addCylinderFaces(faces, 0, -8.4 + baseExplode, 0, 2.2, 1.0, '#64748b', '#334155');
+            
+            // 3. Internal conduits inside spindle (uncut to view inside)
+            const condX = [-0.5, -0.5, 0.5, 0.5];
+            const condZ = [-0.5, 0.5, -0.5, 0.5];
+            for (let i = 0; i < 4; i++) {
+                if (activeSystem !== 'all' && activeSystem !== String(i)) continue;
+                const h = chamberOffsets[i] - (-10.5);
+                const y = -10.5 + h/2;
+                addCylinderFaces(faces, condX[i], y, condZ[i], 0.2, h, conduitColors[i], '#0f172a');
+            }
+            
+            // 4. Chambers & outer sleeves
+            for (let i = 0; i < 4; i++) {
+                const belongsToActive = activeSystem === 'all' || activeSystem === String(i);
+                if (!belongsToActive) continue;
+                
+                const yPos = chamberOffsets[i] + offsets[i] * currentExplosion;
+                const drawAngle = isCutaway ? Math.PI : Math.PI * 2;
+                
+                // Chamber sleeve
+                const sleeveCol = `rgba(203, 213, 225, ${casingOpacity})`;
+                addCylinderFaces(faces, 0, yPos, 0, chamberRadii[i], chamberHeights[i], sleeveCol, '#64748b', drawAngle, i * Math.PI/2);
+                
+                // Color ring
+                addCylinderFaces(faces, 0, yPos, 0, chamberRadii[i] + 0.05, 0.4, conduitColors[i], '#1e293b', drawAngle, i * Math.PI/2);
+                
+                // Rubber Gaskets
+                addCylinderFaces(faces, 0, yPos + chamberHeights[i]/2 + 0.1, 0, 2.0, 0.25, '#334155', '#0f172a');
+                addCylinderFaces(faces, 0, yPos - chamberHeights[i]/2 - 0.1, 0, 2.0, 0.25, '#334155', '#0f172a');
+                
+                // Radial port pipes
+                const angle = i * (Math.PI / 2);
+                const portLength = 1.6;
+                const px = (chamberRadii[i] + portLength/2) * Math.cos(angle);
+                const pz = (chamberRadii[i] + portLength/2) * Math.sin(angle);
+                
+                addHorizontalCylinderFaces(faces, px, yPos, pz, 0.4, portLength, angle, '#cbd5e1', '#64748b');
+                
+                // Pipe flanges
+                const fpx = (chamberRadii[i] + portLength) * Math.cos(angle);
+                const fpz = (chamberRadii[i] + portLength) * Math.sin(angle);
+                addHorizontalCylinderFaces(faces, fpx, yPos, fpz, 0.7, 0.25, angle, '#64748b', '#334155');
+            }
+            
+            // 5. Top Cap
+            addCylinderFaces(faces, 0, 10.2 + capExplode, 0, 2.4, 1.2, '#475569', '#1e293b');
+            addCylinderFaces(faces, 0, 11.3 + capExplode, 0, 1.6, 1.0, '#64748b', '#334155');
+            
+            return faces;
+        }
+
+        // ─── 3D ASSEMBLY RENDERER (Painter's Algorithm solid engine) ─
+        function draw3DAssembly(drawCtx) {
+            if (isAutoRotate && drawCtx === canvasCtx) {
+                angleY += 0.003;
+            }
+
+            // Draw technical grid lines on canvas
+            if (drawCtx === canvasCtx) {
+                drawCtx.strokeStyle = 'rgba(100, 116, 139, 0.08)';
+                drawCtx.lineWidth = 1;
+                for(let i = -10; i <= 10; i += 2) {
+                    let p1 = project3D(-15, -11, i);
+                    let p2 = project3D(15, -11, i);
+                    drawCtx.beginPath(); drawCtx.moveTo(p1.x, p1.y); drawCtx.lineTo(p2.x, p2.y); drawCtx.stroke();
+
+                    let p3 = project3D(i, -11, -15);
+                    let p4 = project3D(i, -11, 15);
+                    drawCtx.beginPath(); drawCtx.moveTo(p3.x, p3.y); drawCtx.lineTo(p4.x, p4.y); drawCtx.stroke();
+                }
+            }
+
+            // Gather faces
+            const faces = get3DSceneFaces();
+            
+            // Rotate vertices and calculate depth
+            const cosY = Math.cos(angleY);
+            const sinY = Math.sin(angleY);
+            const cosX = Math.cos(angleX);
+            const sinX = Math.sin(angleX);
+            
+            faces.forEach(face => {
+                let sumDepth = 0;
+                face.rotatedVertices = face.vertices.map(v => {
+                    const x = v[0], y = v[1], z = v[2];
+                    const x1 = x * cosY - z * sinY;
+                    const z1 = x * sinY + z * cosY;
+                    const y2 = y * cosX - z1 * sinX;
+                    const z2 = y * sinX + z1 * cosX;
+                    
+                    sumDepth += z2;
+                    return [x1, y2, z2];
+                });
+                face.depth = sumDepth / face.vertices.length;
+            });
+            
+            // Sort faces back-to-front (Painter's Algorithm)
+            faces.sort((a, b) => b.depth - a.depth);
+            
+            // Render faces with depth fading (Recommandation B)
+            const cameraDist = 35;
+            
+            faces.forEach(face => {
+                const depthNorm = Math.max(0, Math.min(1, (face.depth + 15) / 30));
+                
+                drawCtx.fillStyle = face.color;
+                drawCtx.strokeStyle = face.strokeColor;
+                drawCtx.lineWidth = face.lineWidth * (0.5 + depthNorm * 0.8);
+                
+                drawCtx.beginPath();
+                face.rotatedVertices.forEach((v, idx) => {
+                    const x1 = v[0], y2 = v[1], z2 = v[2];
+                    const depth = z2 + cameraDist;
+                    const factor = 460 * zoom;
+                    
+                    // Apply zoom and panning offsets to screen mapping
+                    const px = (x1 * factor) / depth + width / 2 + panX;
+                    const py = (-y2 * factor) / depth + height / 2 + panY;
+                    
+                    if (idx === 0) drawCtx.moveTo(px, py);
+                    else drawCtx.lineTo(px, py);
+                });
+                drawCtx.closePath();
+                drawCtx.fill();
+                drawCtx.stroke();
+            });
+
+            // Update angle display
+            const angleDeg = (angleY * 180 / Math.PI) % 360;
+            lblRot.innerText = angleDeg.toFixed(1) + "°";
+
+            // Draw fluid flow particles
+            if (showFlow && drawCtx === canvasCtx) {
+                const offsets = [-4.5, -1.5, 2.5, 6.5];
+                const chamberOffsets = [-4.2, -0.6, 3.4, 7.2];
+                const chamberRadii = [2.9, 2.9, 3.4, 2.6];
+                
+                particles.forEach(p => {
+                    if (activeSystem !== 'all' && activeSystem !== String(p.system)) return;
+                    
+                    const i = p.system;
+                    const casingOffset = offsets[i] * currentExplosion;
+                    const angle = i * (Math.PI / 2);
+                    
+                    const px = (chamberRadii[i] + 1.2) * Math.cos(angle);
+                    const pz = (chamberRadii[i] + 1.2) * Math.sin(angle);
+                    
+                    const condX = [-0.5, -0.5, 0.5, 0.5];
+                    const condZ = [-0.5, 0.5, -0.5, 0.5];
+
+                    let rx = 0, ry = 0, rz = 0;
+                    
+                    if (p.t < 0.7) {
+                        const tNorm = p.t / 0.7;
+                        ry = -10.5 + tNorm * (chamberOffsets[i] - (-10.5));
+                        rx = condX[i];
+                        rz = condZ[i];
+                    } else {
+                        const tNorm = (p.t - 0.7) / 0.3;
+                        ry = chamberOffsets[i] + casingOffset;
+                        rx = condX[i] + tNorm * (px - condX[i]);
+                        rz = condZ[i] + tNorm * (pz - condZ[i]);
+                    }
+
+                    // Rotate
+                    const x1 = rx * cosY - rz * sinY;
+                    const z1 = rx * sinY + rz * cosY;
+                    const y2 = ry * cosX - z1 * sinX;
+                    const z2 = ry * sinX + z1 * cosX;
+                    
+                    const depth = z2 + 35;
+                    const factor = 460 * zoom;
+                    const screenX = (x1 * factor) / depth + width / 2 + panX;
+                    const screenY = (-y2 * factor) / depth + height / 2 + panY;
+
+                    const radius = Math.max(1, 4 * (factor / depth / 15));
+                    
+                    drawCtx.fillStyle = conduitColors[i];
+                    drawCtx.beginPath();
+                    drawCtx.arc(screenX, screenY, radius, 0, Math.PI * 2);
+                    drawCtx.fill();
+                });
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
