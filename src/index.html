@@ -685,6 +685,32 @@
             drawCtx.fillText("STATIONARY SPINDLE CORE", cx - 70, cy - 155);
         }
 
+        // ─── CPU LIGHTING SHADER SYSTEM ───
+        function parseColor(cStr) {
+            if (cStr.startsWith('#')) {
+                const hex = cStr.substring(1);
+                return [
+                    parseInt(hex.substr(0, 2), 16) || 0,
+                    parseInt(hex.substr(2, 2), 16) || 0,
+                    parseInt(hex.substr(4, 2), 16) || 0,
+                    1.0
+                ];
+            }
+            if (cStr.startsWith('rgba(')) {
+                const parts = cStr.match(/[\d.]+/g);
+                return [parseFloat(parts[0]), parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])];
+            }
+            return [255, 255, 255, 1.0];
+        }
+
+        function applyLighting(cStr, diffuse, specular) {
+            const [r, g, b, a] = parseColor(cStr);
+            const rL = Math.min(255, r * diffuse + specular);
+            const gL = Math.min(255, g * diffuse + specular);
+            const bL = Math.min(255, b * diffuse + specular);
+            return `rgba(${Math.round(rL)}, ${Math.round(gL)}, ${Math.round(bL)}, ${a})`;
+        }
+
         // Helper functions to generate 3D faces list
         function addCylinderFaces(faces, cx, cy, cz, r, h, color, strokeColor, angleLimit = Math.PI*2, rotOffset = 0) {
             const steps = 16;
@@ -921,14 +947,70 @@
             // Sort faces back-to-front (Painter's Algorithm)
             faces.sort((a, b) => b.depth - a.depth);
             
-            // Render faces with depth fading (Recommandation B)
+            // Light setup (Camera relative)
+            // L points towards the light source, so light comes from top-left-front
+            let Lx = -0.5, Ly = 0.7, Lz = -0.5;
+            const lenL = Math.sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
+            Lx /= lenL; Ly /= lenL; Lz /= lenL;
+            
+            // View vector is directly into the screen (0, 0, -1) in camera space
+            const Vx = 0, Vy = 0, Vz = -1;
+            
+            // Half vector for Blinn-Phong
+            let Hx = Lx + Vx, Hy = Ly + Vy, Hz = Lz + Vz;
+            const lenH = Math.sqrt(Hx*Hx + Hy*Hy + Hz*Hz);
+            Hx /= lenH; Hy /= lenH; Hz /= lenH;
+            
+            // Render faces with depth fading and dynamic shading
             const cameraDist = 35;
             
             faces.forEach(face => {
                 const depthNorm = Math.max(0, Math.min(1, (face.depth + 15) / 30));
                 
-                drawCtx.fillStyle = face.color;
-                drawCtx.strokeStyle = face.strokeColor;
+                let diffuse = 1.0;
+                let specular = 0.0;
+
+                // Calculate face normal using cross product of first two edges
+                if (face.rotatedVertices.length >= 3) {
+                    const v0 = face.rotatedVertices[0];
+                    const v1 = face.rotatedVertices[1];
+                    const v2 = face.rotatedVertices[2];
+                    
+                    const ux = v1[0] - v0[0];
+                    const uy = v1[1] - v0[1];
+                    const uz = v1[2] - v0[2];
+                    
+                    const wx = v2[0] - v1[0];
+                    const wy = v2[1] - v1[1];
+                    const wz = v2[2] - v1[2];
+                    
+                    let nx = uy * wz - uz * wy;
+                    let ny = uz * wx - ux * wz;
+                    let nz = ux * wy - uy * wx;
+                    
+                    const lenN = Math.sqrt(nx*nx + ny*ny + nz*nz);
+                    if (lenN > 0) {
+                        // Reverse normal if it's pointing away from camera (0, 0, -1)
+                        if (nz > 0) {
+                            nx = -nx; ny = -ny; nz = -nz;
+                        }
+                        
+                        nx /= lenN; ny /= lenN; nz /= lenN;
+                        
+                        // Diffuse Term (ambient + dot(N,L))
+                        const dotNL = nx * Lx + ny * Ly + nz * Lz;
+                        diffuse = 0.3 + 0.7 * Math.max(0, dotNL);
+                        
+                        // Specular Term (pow(dot(N,H), shininess))
+                        const dotNH = nx * Hx + ny * Hy + nz * Hz;
+                        if (dotNL > 0 && dotNH > 0) {
+                            specular = Math.pow(dotNH, 30) * 120; // shininess = 30, intensity = 120
+                        }
+                    }
+                }
+                
+                drawCtx.fillStyle = applyLighting(face.color, diffuse, specular);
+                drawCtx.strokeStyle = applyLighting(face.strokeColor, diffuse, 0); // No specular on strokes
                 drawCtx.lineWidth = face.lineWidth * (0.5 + depthNorm * 0.8);
                 
                 drawCtx.beginPath();
