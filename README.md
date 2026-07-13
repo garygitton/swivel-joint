@@ -2,6 +2,8 @@
 
 An interactive 3D solid assembly and 2D technical schematic visualizer for the Utility Swivel Joint apparatus (Patent US7032353B2).
 
+![Swivel Joint Animated Preview](screenshot.png)
+
 This project features a fully self-contained, GPU-independent 3D vector engine built entirely on the HTML5 CPU Canvas. It uses a custom Painter's Algorithm for depth sorting and dynamic solid face clipping, allowing high-fidelity technical diagrams and fluid flow animations directly in the browser.
 
 ## Features
@@ -14,8 +16,8 @@ This project features a fully self-contained, GPU-independent 3D vector engine b
 ## Development
 
 To preview locally:
-1. Simply open `index.html` in your browser.
-2. (Optional) Run a local HTTP server: `python3 -m http.server 3018`.
+1. Simply open `src/index.html` in your browser.
+2. (Optional) Run a local HTTP server: `python3 -m http.server -d src 3018`.
 
 ## Testing
 This repository includes a Playwright script to verify UI integrity.
