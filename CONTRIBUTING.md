@@ -3,9 +3,9 @@
 ---
 
 <a id="english"></a>
-# Contributing to ChouetteGPT
+# Contributing to Swivel Joint Visualizer
 
-Thank you for your interest in contributing to ChouetteGPT! We welcome all contributions, from bug reports to pull requests.
+Thank you for your interest in contributing to Swivel Joint Visualizer! We welcome all contributions, from bug reports to pull requests.
 
 ## How to Contribute
 1. **Fork the repository**: Create your own fork and clone it locally.
@@ -15,9 +15,9 @@ Thank you for your interest in contributing to ChouetteGPT! We welcome all contr
 5. **Open a Pull Request**: Submit a Pull Request against our `main` branch.
 
 ## Development Guidelines
-- Please follow the existing code style (Vue/Nuxt conventions).
+- Please follow the existing code style (Vanilla JavaScript / HTML5 Canvas conventions).
 - Add tests for any new features if applicable.
-- Make sure all existing tests pass (`npm run test:e2e`).
+- Make sure all existing tests pass (`make test`).
 - Please write your code, variables, and comments in **English**.
 
 <br>
@@ -25,9 +25,9 @@ Thank you for your interest in contributing to ChouetteGPT! We welcome all contr
 ---
 
 <a id="français"></a>
-# Contribuer à ChouetteGPT
+# Contribuer à Swivel Joint Visualizer
 
-Merci de votre intérêt pour contribuer à ChouetteGPT ! Nous accueillons toutes les contributions, des rapports de bugs aux pull requests.
+Merci de votre intérêt pour contribuer à Swivel Joint Visualizer ! Nous accueillons toutes les contributions, des rapports de bugs aux pull requests.
 
 ## Comment contribuer
 1. **Forkez le dépôt** : Créez votre propre fork et clonez-le localement.
@@ -37,7 +37,7 @@ Merci de votre intérêt pour contribuer à ChouetteGPT ! Nous accueillons toute
 5. **Ouvrez une Pull Request** : Soumettez une Pull Request vers notre branche `main`.
 
 ## Directives de Développement
-- Veuillez suivre le style de code existant (conventions Vue/Nuxt).
+- Veuillez suivre le style de code existant (conventions Vanilla JavaScript / HTML5 Canvas).
 - Ajoutez des tests pour les nouvelles fonctionnalités si applicable.
-- Assurez-vous que tous les tests existants passent (`npm run test:e2e`).
+- Assurez-vous que tous les tests existants passent (`make test`).
 - Veuillez écrire votre code, vos variables et vos commentaires en **Anglais**.
