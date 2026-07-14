@@ -1,6 +1,10 @@
+# Load environment variables
+-include .env
+-include .env.local
+
 .PHONY: start test install
 
-# Port for the local server
+# Fallback default port if not defined in env files
 PORT ?= 3018
 
 start:

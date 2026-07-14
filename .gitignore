@@ -9,3 +9,6 @@ blob-report/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Local env files
+.env.local
